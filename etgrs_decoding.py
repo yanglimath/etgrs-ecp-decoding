@@ -17,6 +17,8 @@ SEED = 20261017
 TRIALS = 10
 METHODS = ("ECP", "BW", "Gao", "EEA")
 
+#(+)-ETGRS codes obtained from Table 1#
+
 CODE_IDS = (103, 203, 303, 304, 305, 306, 307, 308, 309)
 FIELDS = {
     8: (2, 3, [1, 1, 0, 1]),
