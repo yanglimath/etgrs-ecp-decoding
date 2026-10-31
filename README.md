@@ -1,6 +1,6 @@
 # Decoding (+)-ETGRS codes
 
-A SageMath program comparing the matrix ECP decoder in Algorithm 1 with Beelen-type BW, Gao and EEA decoding.
+A SageMath program comparing our ECP decoder in Algorithm 1 with Beelen-type decoders based on BW, Gao and EEA decoding methods.
 
 The tests use the smallest admissible field and largest permitted length for each of the three constructions, with all feasible dimensions:
 
