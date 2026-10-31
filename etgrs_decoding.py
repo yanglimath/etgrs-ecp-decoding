@@ -25,6 +25,9 @@ FIELDS = {
     81: (3, 4, [2, 0, 0, 2, 1]),
     25: (5, 2, [2, 4, 1]),
 }
+
+#integers are indices for elements in finite fields# 
+
 POINTS = {
     1: [1, 2, 4, 3, 6, 7],
     2: [73, 74, 36, 2, 38, 37, 72, 1],
