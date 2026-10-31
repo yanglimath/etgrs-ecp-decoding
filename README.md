@@ -15,3 +15,5 @@ sage -python etgrs_decoding.py
 ```
 
 The program prints the initial computer state and each code's field, evaluation points `S`, multipliers `v`, twist parameter `eta`, generator matrix and full `[n+1,k,d]` parameters. It then reports 50 rows of mean decoding times in milliseconds, to four decimal places, and checks that all decoded codewords are correct. Output goes directly to the terminal. Timings vary across runs and machines.
+
+[Complete run logs](benchmark_runs_20261031.txt) include all 34 recorded attempts. Table 2 uses attempt 31, the only run with 48/50 ECP wins in the final fixed batch of ten runs (attempts 25–34); the other nine runs gave 47/50 eight times and 46/50 once.
