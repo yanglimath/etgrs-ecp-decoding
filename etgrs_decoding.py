@@ -2,8 +2,12 @@
 
 import hashlib
 import os
+import platform
 import random
 import statistics
+import subprocess
+import sys
+from datetime import datetime
 from itertools import chain
 from time import perf_counter_ns
 
@@ -12,6 +16,7 @@ for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "SAGE_NUM_THREADS"):
 
 from sage.all import GF, PolynomialRing, ZZ, codes, diagonal_matrix, matrix, vector
 from sage.coding.decoder import DecodingError
+from sage.env import SAGE_VERSION
 
 SEED = 20261017
 TRIALS = 10
@@ -275,13 +280,66 @@ def sample_seeds(code_id, weight, trial, phase="trial"):
     return tuple(int.from_bytes(hashlib.sha256(f"{prefix}:{kind}".encode()).digest(),
                                 "big") for kind in ("message", "error"))
 
+def print_runtime():
+    """Record the machine state before preparing and timing the decoders."""
+    print("Run started:", datetime.now().astimezone().isoformat(timespec="seconds"))
+    print(f"SageMath {SAGE_VERSION}; Python {platform.python_version()}; {platform.platform()}")
+    print(f"Seed: {SEED}; trials per case: {TRIALS}; computational threads: 1")
+    if hasattr(os, "getloadavg"):
+        print("System load (1, 5, 15 min):", ", ".join(f"{x:.2f}" for x in os.getloadavg()))
+    if sys.platform == "darwin":
+        commands = (
+            ("Hardware", ["/usr/sbin/sysctl", "machdep.cpu.brand_string", "hw.model",
+                          "hw.memsize", "hw.physicalcpu", "hw.logicalcpu"]),
+            ("Power", ["/usr/bin/pmset", "-g", "batt"]),
+            ("Power settings", ["/usr/bin/pmset", "-g"]),
+            ("Thermal status", ["/usr/bin/pmset", "-g", "therm"]),
+        )
+        for label, command in commands:
+            try:
+                result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                print(f"{label}: unavailable")
+                continue
+            lines = result.stdout.strip().splitlines()
+            if label == "Power":
+                lines = [line.split("\t", 1)[-1].strip() if "\t" in line else line
+                         for line in lines]
+            elif label == "Power settings":
+                lines = [line.strip() for line in lines if "lowpowermode" in line]
+            print(f"{label}: " + " | ".join(lines or ["unavailable"]))
+    print(flush=True)
+
+def print_case(case):
+    """Print the code and determine its distance by the subset-sum criterion."""
+    F, S, v, k, eta = (case[key] for key in ("F", "S", "v", "k", "eta"))
+    sums = [set() for _ in range(k + 1)]
+    sums[0].add(F.zero())
+    for a in S:
+        for size in range(k, 0, -1):
+            sums[size].update(s + a for s in sums[size - 1])
+    nmds = -1 / eta in sums[k]
+    distance = case["N"] - k + (0 if nmds else 1)
+    print(f"(+)-ETGRS code {case['code_id']} (construction {case['family']})")
+    print(f"Field: GF({case['q']}), characteristic {F.characteristic()}; a is a root of {F.modulus()}")
+    print("S =", tuple(S))
+    print("v =", tuple(v))
+    print("eta =", eta)
+    print(f"Parameters: [{case['N']}, {k}, {distance}]_{case['q']} ({'NMDS' if nmds else 'MDS'}); t = {case['t']}")
+    print("G =")
+    for row in case["G"]:
+        print("[" + ", ".join(str(x) for x in row) + "]")
+    print(flush=True)
+
 def run():
-    print("  q   N   k   t   w      ECP(ms)     B-BW(ms)    B-Gao(ms)    B-EEA(ms)")
+    print_runtime()
     verified = 0
     inputs = 0
     combinations = 0
     for code_id in CODE_IDS:
         case = make_case(code_id)
+        print_case(case)
+        print("  q   N   k   t   w      ECP(ms)     B-BW(ms)    B-Gao(ms)    B-EEA(ms)")
         S, v, k, eta = (case[key] for key in ("S", "v", "k", "eta"))
         decoders = {"ECP": ECPDecoder(S, v, k, eta)}
         decoders.update({name: BeelenDecoder(S, v, k, eta, method=name)
